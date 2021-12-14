@@ -62,7 +62,8 @@ export async function paginateRaw<
   ];
 
   if (countQueries) {
-    promises[1] = countQuery(queryBuilder);
+    const totalQueryBuilder = queryBuilder.clone();
+    promises[1] = totalQueryBuilder.getCount();
   }
 
   const [items, total] = await Promise.all(promises);
@@ -100,7 +101,8 @@ export async function paginateRawAndEntities<
   ];
 
   if (countQueries) {
-    promises[1] = countQuery(queryBuilder);
+    const totalQueryBuilder = queryBuilder.clone();
+    promises[1] = totalQueryBuilder.getCount();
   }
 
   const [itemObject, total] = await Promise.all(promises);
@@ -214,7 +216,8 @@ async function paginateQueryBuilder<T, CustomMetaType = IPaginationMeta>(
   ];
 
   if (countQueries) {
-    promises[1] = countQuery(queryBuilder);
+    const totalQueryBuilder = queryBuilder.clone();
+    promises[1] = totalQueryBuilder.getCount();
   }
 
   const [items, total] = await Promise.all(promises);
@@ -229,24 +232,3 @@ async function paginateQueryBuilder<T, CustomMetaType = IPaginationMeta>(
     routingLabels: options.routingLabels,
   });
 }
-
-const countQuery = async <T>(
-  queryBuilder: SelectQueryBuilder<T>,
-): Promise<number> => {
-  const totalQueryBuilder = queryBuilder.clone();
-
-  totalQueryBuilder
-    .skip(undefined)
-    .limit(undefined)
-    .offset(undefined)
-    .take(undefined);
-
-  const { value } = await queryBuilder.connection
-    .createQueryBuilder()
-    .select('COUNT(*)', 'value')
-    .from(`(${totalQueryBuilder.getQuery()})`, 'uniqueTableAlias')
-    .setParameters(queryBuilder.getParameters())
-    .getRawOne<{ value: string }>();
-
-  return Number(value);
-};
